@@ -10,7 +10,7 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>MusicBeePlugin</RootNamespace>
     <AssemblyName>mb_MediaControl</AssemblyName>
-    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <TargetPlatformVersion>10.0.10240.0</TargetPlatformVersion>
     <FileAlignment>512</FileAlignment>
     <FileUpgradeFlags>
