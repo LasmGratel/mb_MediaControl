@@ -132,6 +132,8 @@ namespace MusicBeePlugin
                     SetDisplayValues();
                     break;
             }
+
+            UpdateSmtcPosition();
         }
 
         private void systemMediaControls_ButtonPressed(SystemMediaTransportControls smtc, SystemMediaTransportControlsButtonPressedEventArgs args)
@@ -140,9 +142,14 @@ namespace MusicBeePlugin
             {
                 case SystemMediaTransportControlsButton.Stop:
                     MediaControl_StopButtonPress();
+                    smtc.PlaybackStatus = MediaPlaybackStatus.Stopped;
                     break;
                 case SystemMediaTransportControlsButton.Play:
+                    smtc.PlaybackStatus = MediaPlaybackStatus.Playing;
+                    MediaControl_PlayPauseButtonPress();
+                    break;
                 case SystemMediaTransportControlsButton.Pause:
+                    smtc.PlaybackStatus = MediaPlaybackStatus.Paused;
                     MediaControl_PlayPauseButtonPress();
                     break;
                 case SystemMediaTransportControlsButton.Next:
@@ -162,11 +169,35 @@ namespace MusicBeePlugin
                     mbApiInterface.Player_SetVolume(mbApiInterface.Player_GetVolume() - 0.05F);
                     break;
             }
+
+            UpdateSmtcPosition();
         }
 
         private void systemMediaControls_PlaybackPositionChangeRequested(SystemMediaTransportControls smtc, PlaybackPositionChangeRequestedEventArgs args)
         {
             mbApiInterface.Player_SetPosition(args.RequestedPlaybackPosition.Milliseconds);
+            UpdateSmtcPosition();
+        }
+
+        private void UpdateSmtcPosition()
+        {
+            var timelineProperties = new SystemMediaTransportControlsTimelineProperties();
+
+            // This is a simple scenario that supports seeking, therefore start time and min seek are both 0 and 
+            // end time and max seek are both the duration. This allows the system to suggest seeking anywhere in the track.
+            // Position is the current player position.
+
+            // Note: More complex scenarios may alter more of these values, such as only allowing seeking in a section of the content,
+            // by setting min and max seek differently to start and end. For other scenarios such as live playback, end time may be 
+            // updated frequently too. 
+            var mediaPlayer = BackgroundMediaPlayer.Current;
+            timelineProperties.StartTime = TimeSpan.FromSeconds(0);
+            timelineProperties.MinSeekTime = TimeSpan.FromSeconds(0);
+            timelineProperties.Position = TimeSpan.FromMilliseconds(mbApiInterface.Player_GetPosition());
+            timelineProperties.MaxSeekTime = TimeSpan.FromMilliseconds(mbApiInterface.NowPlaying_GetDuration());
+            timelineProperties.EndTime = TimeSpan.FromMilliseconds(mbApiInterface.NowPlaying_GetDuration());
+
+            systemMediaControls.UpdateTimelineProperties(timelineProperties);
         }
 
         private void systemMediaControls_PlaybackRateChangeRequested(SystemMediaTransportControls smtc, PlaybackRateChangeRequestedEventArgs args)
@@ -254,9 +285,11 @@ namespace MusicBeePlugin
             else
             {
                 new MemoryStream(data).AsInputStream();
-
+                
                 artworkStream = new InMemoryRandomAccessStream();
                 await artworkStream.WriteAsync(data.AsBuffer());
+
+
                 displayUpdater.Thumbnail = RandomAccessStreamReference.CreateFromStream(artworkStream);
             }
         }
@@ -292,6 +325,8 @@ namespace MusicBeePlugin
                 default:
                     break;
             }
+
+            UpdateSmtcPosition();
         }
 
     }
